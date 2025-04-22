@@ -20,16 +20,23 @@ jobs:
         distribution: 'temurin'
         java-version: '11'
 
-    - name: Setup Android SDK (JDK 11 compatible)
+    - name: Setup Android SDK
       run: |
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
+        
+        # Download correto do Command Line Tools
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
         unzip cmdline-tools.zip -d cmdline-tools
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv cmdline-tools/* android-sdk/cmdline-tools/latest/
+        mkdir -p android-sdk/cmdline-tools
+        mv cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
+        
+        # Configura variáveis de ambiente
         echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-        yes | android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        
+        # Aceita licenças
+        yes | sdkmanager --licenses
 
     - name: Prepare Aliucord
       run: |
@@ -37,19 +44,15 @@ jobs:
         cd Aliucord
         git submodule update --init --recursive
         echo "org.gradle.daemon=false" >> gradle.properties
+        echo "org.gradle.parallel=true" >> gradle.properties
         chmod +x gradlew
 
     - name: Install Plugin Files
       run: |
-        # Cria estrutura de diretórios
         mkdir -p Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner
-        
-        # Copia arquivos essenciais
         cp -v build.gradle Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
         cp -v manifest.json Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
         cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
-        
-        # Atualiza settings.gradle
         echo "include 'plugins:Sc-Rhyan57-betterBanner.aliucord'" >> Aliucord/settings.gradle
 
     - name: Build Plugin
@@ -65,11 +68,3 @@ jobs:
       with:
         name: BetterBanner-Plugin
         path: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
-
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

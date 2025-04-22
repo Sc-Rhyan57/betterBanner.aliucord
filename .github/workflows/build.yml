@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout code
@@ -21,18 +21,38 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Setup Android SDK
+      - name: Install Android Command Line Tools
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
+          
+          # Baixar versão alternativa mais estável
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip -d cmdline-tools
-          mkdir -p android-sdk/cmdline-tools
-          mv cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
+          
+          # Estrutura de pastas crítica - esta é a parte mais importante
+          mkdir -p android-sdk
+          mv cmdline-tools android-sdk/cmdline-tools
+          
+          # Configurar variáveis de ambiente corretamente
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-33" >/dev/null 2>&1
+          echo "PATH=$PWD/android-sdk/cmdline-tools/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Verify Installation
+        run: |
+          echo "=== Conteúdo do android-sdk ==="
+          ls -R android-sdk/
+          
+          echo "=== PATH ==="
+          echo $PATH
+          
+          echo "=== Testando sdkmanager ==="
+          ./android-sdk/cmdline-tools/bin/sdkmanager --list || echo "Teste falhou"
+
+      - name: Accept Licenses
+        run: |
+          yes | ./android-sdk/cmdline-tools/bin/sdkmanager --licenses >/dev/null
+          ./android-sdk/cmdline-tools/bin/sdkmanager "platform-tools" "platforms;android-33" >/dev/null
 
       - name: Clone Aliucord
         run: |
@@ -43,11 +63,10 @@ jobs:
 
       - name: Install Plugin
         run: |
-          PLUGIN_DIR="Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord"
-          mkdir -p $PLUGIN_DIR/src/main/kotlin/com/rhyans/betterbanner
-          cp -v build.gradle $PLUGIN_DIR/
-          cp -v manifest.json $PLUGIN_DIR/
-          cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt $PLUGIN_DIR/src/main/kotlin/com/rhyans/betterbanner/
+          mkdir -p Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner
+          cp -v build.gradle Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
+          cp -v manifest.json Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
+          cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
           echo "include 'plugins:Sc-Rhyan57-betterBanner.aliucord'" >> Aliucord/settings.gradle
 
       - name: Build Plugin

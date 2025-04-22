@@ -1,4 +1,4 @@
-package com.example.betterbanners
+package com.rhyans.betterbanner
 
 import android.content.Context
 import com.aliucord.annotations.AliucordPlugin
@@ -121,9 +121,7 @@ class BetterBanners : Plugin() {
             })
     }
 
-    override fun getSettingsPage(): Page = SettingsPage().apply {
-        customBannerApiLink = "https://betterbanners.vercel.app/v1"
-    }
+    override fun getSettingsPage(): Page = Page()
 
     data class UserBannerData(
         val id: String,
@@ -133,7 +131,7 @@ class BetterBanners : Plugin() {
     )
 
     inner class Page : SettingsPage() {
-        var customBannerApiLink: String = ""
+        private val customBannerApiLink: String = "https://betterbanners.vercel.app/v1"
         
         override fun onViewBound(view: View) {
             super.onViewBound(view)

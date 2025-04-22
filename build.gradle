@@ -1,0 +1,7 @@
+version = "1.0.0"
+description = "Use banners personalizados de forma gratuita com BetterBanners!"
+
+aliucord {
+    projectType = ProjectType.PLUGIN
+    mainClass = "com.example.betterbanners.BetterBanners"
+}

@@ -54,6 +54,23 @@ jobs:
           git submodule update --init --recursive
           chmod +x gradlew
 
+      # Add this step to configure Google Maven repository
+      - name: Configure Gradle repositories
+        run: |
+          mkdir -p ~/.gradle
+          echo 'buildscript {' > ~/.gradle/init.gradle
+          echo '    repositories {' >> ~/.gradle/init.gradle
+          echo '        google()' >> ~/.gradle/init.gradle
+          echo '        mavenCentral()' >> ~/.gradle/init.gradle
+          echo '    }' >> ~/.gradle/init.gradle
+          echo '}' >> ~/.gradle/init.gradle
+          echo 'allprojects {' >> ~/.gradle/init.gradle
+          echo '    repositories {' >> ~/.gradle/init.gradle
+          echo '        google()' >> ~/.gradle/init.gradle
+          echo '        mavenCentral()' >> ~/.gradle/init.gradle
+          echo '    }' >> ~/.gradle/init.gradle
+          echo '}' >> ~/.gradle/init.gradle
+
       - name: Verify Source Files
         run: |
           echo "=== Project directory structure ==="
@@ -78,6 +95,12 @@ jobs:
           cp -v build.gradle Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
           cp -v manifest.json Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
           cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
+          
+          # Also copy BetterBannerSettings.kt if it exists
+          if [ -f "src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt" ]; then
+            cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
+          fi
+          
           echo "include 'plugins:Sc-Rhyan57-betterBanner.aliucord'" >> Aliucord/settings.gradle
           
           echo "=== Plugin installation complete ==="

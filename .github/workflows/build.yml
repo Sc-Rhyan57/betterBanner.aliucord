@@ -67,8 +67,3 @@ jobs:
         with:
           name: BetterBanner-Plugin
           path: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
-
-      - name: Debug Aliucord Build
-  run: |
-    cd Aliucord
-    ./gradlew :plugins:Sc-Rhyan57-betterBanner.aliucord:dependencies --no-daemon

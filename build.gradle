@@ -1,7 +1,15 @@
+plugins {
+    id 'com.aliucord.gradle' version '1.0.0'
+}
+
 version = "1.0.0"
 description = "Use banners personalizados de forma gratuita com BetterBanners!"
 
 aliucord {
-    projectType = ProjectType.PLUGIN
-    mainClass = "com.example.betterbanners.BetterBanners"
+    mainClass = "com.rhyans.betterbanner.BetterBanners"
+}
+
+dependencies {
+    implementation 'com.aliucord:Aliucord:version'
+    implementation 'com.discord:discord:versão'
 }

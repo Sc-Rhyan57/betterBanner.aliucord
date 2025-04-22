@@ -22,30 +22,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '11'
+          cache: 'gradle'
 
-      - name: Install Android Command Line Tools
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          
-          # Download stable version of command line tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O cmdline-tools.zip
-          
-          # Create the proper directory structure required by Android tools
-          mkdir -p android-sdk/cmdline-tools
-          unzip -q cmdline-tools.zip -d android-sdk/cmdline-tools
-          
-          # Rename the extracted directory to follow the expected structure
-          mv android-sdk/cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
-          
-          # Set environment variables
-          echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PWD/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Accept Licenses
-        run: |
-          yes | ./android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
-          ./android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" >/dev/null
+      # Use the official Android setup action instead of manual setup
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-33'
 
       - name: Clone Aliucord
         run: |
@@ -54,40 +37,82 @@ jobs:
           git submodule update --init --recursive
           chmod +x gradlew
 
-      # Add this step to configure Google Maven repository
-      - name: Configure Gradle repositories
+      # Check Aliucord build environment
+      - name: Debug Aliucord build environment
         run: |
+          cd Aliucord
+          cat build.gradle.kts || echo "build.gradle.kts not found"
+          cat settings.gradle || cat settings.gradle.kts || echo "settings.gradle not found"
+          
+          # Create repositories.gradle if it doesn't exist
+          echo "Adding Google Maven repository to repositories"
+          cat > repositories.gradle << EOF
+          repositories {
+              google()
+              mavenCentral()
+              maven { url 'https://jitpack.io' }
+          }
+          
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          EOF
+          
+          # Add init script to include repositories
           mkdir -p ~/.gradle
-          echo 'buildscript {' > ~/.gradle/init.gradle
-          echo '    repositories {' >> ~/.gradle/init.gradle
-          echo '        google()' >> ~/.gradle/init.gradle
-          echo '        mavenCentral()' >> ~/.gradle/init.gradle
-          echo '    }' >> ~/.gradle/init.gradle
-          echo '}' >> ~/.gradle/init.gradle
-          echo 'allprojects {' >> ~/.gradle/init.gradle
-          echo '    repositories {' >> ~/.gradle/init.gradle
-          echo '        google()' >> ~/.gradle/init.gradle
-          echo '        mavenCentral()' >> ~/.gradle/init.gradle
-          echo '    }' >> ~/.gradle/init.gradle
-          echo '}' >> ~/.gradle/init.gradle
+          cat > ~/.gradle/init.gradle << EOF
+          allprojects {
+              buildscript {
+                  repositories {
+                      google()
+                      mavenCentral()
+                      gradlePluginPortal()
+                  }
+              }
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url "https://jitpack.io" }
+              }
+          }
+          EOF
 
-      - name: Verify Source Files
+      # Check for BetterBannerSettings.kt file
+      - name: Check for Settings File
+        id: check_settings
         run: |
-          echo "=== Project directory structure ==="
-          ls -la
-          
-          echo "=== Source file paths ==="
-          find . -name "*.gradle" -o -name "*.kt" -o -name "manifest.json"
-          
-          echo "=== Source file contents ==="
-          echo "build.gradle:"
-          cat build.gradle || echo "build.gradle not found"
-          
-          echo "manifest.json:"
-          cat manifest.json || echo "manifest.json not found"
-          
-          echo "BetterBanners.kt:"
-          cat src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt || echo "BetterBanners.kt not found"
+          if [ -f "src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt" ]; then
+            echo "settings_file_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "settings_file_exists=false" >> "$GITHUB_OUTPUT"
+            echo "// Placeholder settings file for BetterBanner plugin" > src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "package com.rhyans.betterbanner" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import android.content.Context" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import android.view.View" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import com.aliucord.PluginManager" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import com.aliucord.Utils" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import com.aliucord.api.SettingsAPI" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import com.aliucord.views.Button" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "import com.aliucord.views.TextInput" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "class BetterBannerSettings(private val apiUrl: String) : com.aliucord.settings.SettingsPage() {" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "    override fun onViewCreated(view: View, savedInstanceState: android.os.Bundle?) {" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "        super.onViewCreated(view, savedInstanceState)" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "        val context = requireContext()" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "        val infoText = android.widget.TextView(context).apply {" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "            text = \"BetterBanners v1.0.0\\nPermite usar banners personalizados!\"" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "            textSize = 16f" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "            setPadding(0, 20, 0, 20)" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "        }" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "        addView(infoText)" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "    }" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+            echo "}" >> src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt
+          fi
 
       - name: Install Plugin
         run: |
@@ -95,11 +120,7 @@ jobs:
           cp -v build.gradle Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
           cp -v manifest.json Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
           cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
-          
-          # Also copy BetterBannerSettings.kt if it exists
-          if [ -f "src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt" ]; then
-            cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
-          fi
+          cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBannerSettings.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
           
           echo "include 'plugins:Sc-Rhyan57-betterBanner.aliucord'" >> Aliucord/settings.gradle
           
@@ -113,11 +134,16 @@ jobs:
       - name: Build Plugin with Debug Output
         run: |
           cd Aliucord
+          # Try building with more memory and debugging options
+          GRADLE_OPTS="-Xmx4g -XX:MaxPermSize=2048m -XX:+HeapDumpOnOutOfMemoryError" \
           ./gradlew :plugins:Sc-Rhyan57-betterBanner.aliucord:build \
             --no-daemon \
             --info \
             --stacktrace \
-            -Dorg.gradle.jvmargs="-Xmx2g"
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=2g" \
+            -Dandroid.useAndroidX=true \
+            -Dandroid.enableJetifier=true \
+            --scan
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

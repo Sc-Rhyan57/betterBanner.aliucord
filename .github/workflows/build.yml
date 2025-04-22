@@ -21,40 +21,43 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
 
-      - name: Setup Android SDK (Stable version)
+      - name: Install Android SDK
         run: |
+          # Configuração inicial
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
           
-          # Baixar versão estável compatível com JDK 11
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
+          # Download da versão específica que funciona com JDK 11
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip -d cmdline-tools
           
-          # Estrutura de pastas CORRIGIDA
+          # Estrutura de pastas CORRETA (esta é a parte mais crítica)
           mkdir -p android-sdk/cmdline-tools
           mv cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
           
-          # Configurar environment
+          # Configuração do ambiente
+          echo "ANDROID_HOME=$PWD/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
-          echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          
-          # Aceitar licenças silenciosamente
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-33" >/dev/null
+          echo "$PWD/android-sdk/cmdline-tools/latest/bin:$PWD/android-sdk/platform-tools" >> $GITHUB_PATH
 
-      - name: Verify Android SDK Installation
+      - name: Verify SDK Installation
         run: |
-          echo "=== Verificando estrutura de pastas ==="
-          ls -la android-sdk/cmdline-tools/latest/bin/
-          
-          echo "=== Verificando sdkmanager ==="
-          which sdkmanager || echo "sdkmanager não encontrado"
+          echo "=== Estrutura de pastas ==="
+          ls -R android-sdk/cmdline-tools/
           
           echo "=== PATH atual ==="
-          echo "$PATH"
+          echo $PATH
           
-          echo "=== Testando sdkmanager ==="
-          sdkmanager --list || echo "Falha ao executar sdkmanager"
+          echo "=== Localização do sdkmanager ==="
+          which sdkmanager || echo "sdkmanager não encontrado"
+          
+          echo "=== Versão do sdkmanager ==="
+          sdkmanager --version || echo "Falha ao executar sdkmanager"
+
+      - name: Accept licenses and install packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platform-tools" "platforms;android-33" >/dev/null
 
       - name: Build plugin
         run: |
@@ -66,11 +69,3 @@ jobs:
         with:
           name: BetterBanner-Plugin
           path: build/outputs/plugin/*.zip
-
-      - name: Create release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: build/outputs/plugin/*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

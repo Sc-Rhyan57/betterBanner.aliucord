@@ -14,32 +14,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout do repositório
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Configuração do Java (Android SDK precisa do 17)
-      - name: Setup JDK 17 (para Android SDK)
+      - name: Setup JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Instalação do Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          jdk-version: '17'
 
-      # 4. Volta para JDK 11 (exigência do Aliucord)
-      - name: Setup JDK 11 (para build do Aliucord)
+      - name: Setup JDK 11
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
 
-      # 5. Cache para acelerar builds futuros
-      - name: Cache Gradle dependencies
+      - name: Cache Gradle
         uses: actions/cache@v3
         with:
           path: |
@@ -49,39 +42,41 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # 6. Clona o Aliucord
-      - name: Clone Aliucord
+      - name: Prepare Aliucord
         run: |
-          git clone --depth 1 --branch main https://github.com/Aliucord/Aliucord.git
+          git clone --depth 1 https://github.com/Aliucord/Aliucord.git
           cd Aliucord
           git submodule update --init --recursive
-          chmod +x gradlew  # Aplica chmod no gradlew do Aliucord
+          chmod +x gradlew
 
-      # 7. Copia seus arquivos para o diretório correto
-      - name: Setup Plugin Directory
+      - name: Install Plugin
         run: |
-          mkdir -p Aliucord/plugins/BetterBanners/src/main/kotlin/com/rhyans/betterbanner
-          cp -v manifest.json build.gradle Aliucord/plugins/BetterBanners/
-          cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/BetterBanners/src/main/kotlin/com/rhyans/betterbanner/
+          # Cria estrutura de diretórios
+          mkdir -p Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner
+          
+          # Copia arquivos essenciais
+          cp -v build.gradle Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/
+          cp -v manifest.json Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/
+          cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
+          
+          # Atualiza settings.gradle
+          echo "include 'plugins:${{ github.repository_owner }}-betterBanner.aliucord'" >> Aliucord/settings.gradle
 
-      # 8. Build do plugin
       - name: Build Plugin
         run: |
           cd Aliucord
-          ./gradlew plugins:BetterBanners:build
+          ./gradlew :plugins:${{ github.repository_owner }}-betterBanner.aliucord:build --stacktrace
 
-      # 9. Upload do ZIP
-      - name: Upload Build Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BetterBanners
-          path: Aliucord/plugins/BetterBanners/build/outputs/plugin/*.zip
+          name: betterBanner.aliucord
+          path: Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/build/outputs/plugin/*.zip
 
-      # 10. Cria release automática (se tiver tag)
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: Aliucord/plugins/BetterBanners/build/outputs/plugin/*.zip
+          files: Aliucord/plugins/${{ github.repository_owner }}-betterBanner.aliucord/build/outputs/plugin/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

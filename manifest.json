@@ -1,0 +1,17 @@
+{
+    "name": "BetterBanners",
+    "description": "Use Banners personalizados de forma gratuita com BetterBanners!",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "sapphire",
+            "id": "757982547861962752"
+        },
+        {
+            "name": "Rhyan57",
+            "id": "896604349311115304"
+        }
+    ],
+    "pluginClassName": "com.rhyans.betterbanner.BetterBanners",
+    "updateUrl": "https://raw.githubusercontent.com/Sc-Rhyan57/betterBanner.aliucord/builds/updater.json"
+}

@@ -17,15 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup JDK 11
+      - name: Setup JDK 17 (for Android SDK)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          jdk-version: '17'
+        
+      - name: Switch back to JDK 11 (for Aliucord build)
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
           
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
-        
       - name: Cache Gradle dependencies
         uses: actions/cache@v3
         with:

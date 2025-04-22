@@ -1,0 +1,22 @@
+{
+    "name": "BetterBanners",
+    "description": "Use banners personalizados de forma gratuita com BetterBanners!",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "sapphire",
+            "id": "757982547861962752"
+        },
+        {
+            "name": "Rhyan57",
+            "id": "896604349311115304"
+        }
+    ],
+    "updateUrl": "https://raw.githubusercontent.com/SEU_USUARIO/BetterBanners/builds/updater.json",
+    "aliucord": {
+        "changelog": "Versão inicial do plugin BetterBanners para Aliucord",
+        "minimumDiscordVersion": 90000,
+        "minimumAliucordVersion": 100000,
+        "mainClass": "com.example.betterbanners.BetterBanners"
+    }
+}

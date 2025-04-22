@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup JDK 11
         uses: actions/setup-java@v3
@@ -40,21 +42,10 @@ jobs:
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "PATH=$PWD/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Verify Installation
-        run: |
-          echo "=== Android SDK Directory Contents ==="
-          ls -R android-sdk/
-          
-          echo "=== PATH ==="
-          echo $PATH
-          
-          echo "=== Testing sdkmanager ==="
-          ./android-sdk/cmdline-tools/latest/bin/sdkmanager --list || echo "Test failed"
-
       - name: Accept Licenses
         run: |
           yes | ./android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
-          ./android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" >/dev/null
+          ./android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" >/dev/null
 
       - name: Clone Aliucord
         run: |
@@ -63,6 +54,24 @@ jobs:
           git submodule update --init --recursive
           chmod +x gradlew
 
+      - name: Verify Source Files
+        run: |
+          echo "=== Project directory structure ==="
+          ls -la
+          
+          echo "=== Source file paths ==="
+          find . -name "*.gradle" -o -name "*.kt" -o -name "manifest.json"
+          
+          echo "=== Source file contents ==="
+          echo "build.gradle:"
+          cat build.gradle || echo "build.gradle not found"
+          
+          echo "manifest.json:"
+          cat manifest.json || echo "manifest.json not found"
+          
+          echo "BetterBanners.kt:"
+          cat src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt || echo "BetterBanners.kt not found"
+
       - name: Install Plugin
         run: |
           mkdir -p Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner
@@ -70,12 +79,20 @@ jobs:
           cp -v manifest.json Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
           cp -v src/main/kotlin/com/rhyans/betterbanner/BetterBanners.kt Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/src/main/kotlin/com/rhyans/betterbanner/
           echo "include 'plugins:Sc-Rhyan57-betterBanner.aliucord'" >> Aliucord/settings.gradle
+          
+          echo "=== Plugin installation complete ==="
+          echo "Checking plugin directory structure:"
+          ls -la Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/
+          
+          echo "Checking settings.gradle:"
+          cat Aliucord/settings.gradle
 
-      - name: Build Plugin
+      - name: Build Plugin with Debug Output
         run: |
           cd Aliucord
           ./gradlew :plugins:Sc-Rhyan57-betterBanner.aliucord:build \
             --no-daemon \
+            --info \
             --stacktrace \
             -Dorg.gradle.jvmargs="-Xmx2g"
 
@@ -84,3 +101,4 @@ jobs:
         with:
           name: BetterBanner-Plugin
           path: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
+          if-no-files-found: warn

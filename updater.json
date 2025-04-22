@@ -1,6 +1,0 @@
-{
-  "version": "1.0.0",
-  "minimumDiscordVersion": 90000,
-  "minimumAliucordVersion": 100000,
-  "baseUrl": "https://github.com/Sc-Rhyan57/betterBanner.aliucord/releases/download/v$VERSION$/"
-}

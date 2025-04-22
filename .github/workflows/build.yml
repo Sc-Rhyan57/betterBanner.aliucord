@@ -1,52 +1,50 @@
 name: Build BetterBanner
 
-concurrency:
-  group: "build"
-  cancel-in-progress: true
-
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - '*.md'
+    branches: [main]
+    paths-ignore: ['*.md']
   workflow_dispatch:
 
 jobs:
   build:
-    timeout-minutes: 10
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup JDK 11
         uses: actions/setup-java@v3
         with:
-          java-version: 11
           distribution: 'temurin'
-          cache: 'gradle'
+          java-version: '11'
 
-      - name: Setup Android SDK (Compatible)
+      - name: Setup Android SDK (Stable version)
         run: |
           mkdir -p ~/.android
           touch ~/.android/repositories.cfg
-          wget https://dl.google.com/android/repository/commandlinetools-linux-8092744_latest.zip -O cmdline-tools.zip
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
           unzip cmdline-tools.zip -d cmdline-tools
           mkdir -p android-sdk/cmdline-tools/latest
-          mv cmdline-tools/* android-sdk/cmdline-tools/latest/
+          mv cmdline-tools/cmdline-tools/* android-sdk/cmdline-tools/latest/
           echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
           echo "$PWD/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          yes | sdkmanager --licenses || echo "Licenses already accepted"
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-33"
 
-      - name: Clone Aliucord
+      - name: Prepare Aliucord (with patched build)
         run: |
           git clone --depth 1 https://github.com/Aliucord/Aliucord.git
           cd Aliucord
+          
+          # Patch the build.gradle.kts to remove Android dependencies
+          sed -i '/com.android.library/d' build.gradle.kts
+          sed -i '/com.android.application/d' build.gradle.kts
+          
           git submodule update --init --recursive
           chmod +x gradlew
-          echo "org.gradle.daemon=false" >> gradle.properties
 
       - name: Install Plugin
         run: |
@@ -61,7 +59,8 @@ jobs:
           cd Aliucord
           ./gradlew :plugins:Sc-Rhyan57-betterBanner.aliucord:build \
             --no-daemon \
-            --stacktrace
+            --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx2g"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -69,10 +68,7 @@ jobs:
           name: BetterBanner-Plugin
           path: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
 
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: Aliucord/plugins/Sc-Rhyan57-betterBanner.aliucord/build/outputs/plugin/*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Debug Aliucord Build
+  run: |
+    cd Aliucord
+    ./gradlew :plugins:Sc-Rhyan57-betterBanner.aliucord:dependencies --no-daemon

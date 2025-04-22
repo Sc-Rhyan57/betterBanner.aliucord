@@ -2,18 +2,11 @@ plugins {
     id 'com.aliucord.gradle' version '1.0.6'
 }
 
-version = "1.0.0"
-description = "Use banners personalizados de forma gratuita com BetterBanners!"
-
 aliucord {
-    mainClass = "com.rhyans.betterbanner.BetterBanners"
+    filename = "BetterBanner"
+    projectType = "plugin"
 }
 
 dependencies {
     implementation 'com.aliucord:Aliucord:2023.4.1'
-    
-    implementation 'com.discord:discord:173.17'
-    
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.9.0'
 }
